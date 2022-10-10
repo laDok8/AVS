@@ -36,9 +36,10 @@ LineMandelCalculator::~LineMandelCalculator() {
 }
 
 template <typename T>
-static inline void mandelbrotLine(int width, int *pdata, T *realLine, T *imagLine, T *realLineStart, float imagLineStart)
+static inline void mandelbrotLine(int width, int *pdata, T *realLine, T *imagLine, T *realLineStart, T imagLineStart)
 {
 
+    #pragma omp simd linear(p:1) uniform(imagLineStart) private(r2,i2)
     for (int p= 0; p < width; p++)
     {
         T r2 = realLine[p] * realLine[p];
@@ -61,27 +62,22 @@ int * LineMandelCalculator::calculateMandelbrot () {
     int *pdata = data;
     for (int i = 0; i < height; i++)
     {
-
         float y = y_start + i * dy; // current imaginary value
 
-
         //init assign
+        #pragma omp simd linear(j:1) uniform(y)
         for (int j = 0; j < width; j++)
         {
-            imagLine[j] = 0;
-
+            imagLine[j] = y;
             float x = x_start + j * dx; // current real value
-            realLine[j] = 0;
-            realLineStart[j] = x;
+            realLine[j] = realLineStart[j] = x;
         }
-
 
         for (int i = 0; i < limit; ++i)
         {
             mandelbrotLine(width,pdata,realLine,imagLine,realLineStart,y);
         }
         pdata+=width;
-
     }
     return data;
 }
