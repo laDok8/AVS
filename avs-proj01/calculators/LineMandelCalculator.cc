@@ -22,6 +22,12 @@ LineMandelCalculator::LineMandelCalculator (unsigned matrixBaseSize, unsigned li
     realLine = (float *)(malloc(width * sizeof(float)));
     imagLine = (float *)(malloc(width * sizeof(float)));
     realLineStart = (float *)(malloc(width * sizeof(float)));
+
+    for (int j = 0; j < width; j++) {
+        const float x = x_start + j * dx; // current real value
+        realLineStart[j] = x;
+    }
+
 }
 
 LineMandelCalculator::~LineMandelCalculator() {
@@ -38,7 +44,6 @@ LineMandelCalculator::~LineMandelCalculator() {
 template <typename T>
 static inline void mandelbrotLine(int width, int *pdata, T *realLine, T *imagLine, T *realLineStart, T imagLineStart)
 {
-
     #pragma omp simd linear(p:1) uniform(imagLineStart) private(r2,i2)
     for (int p= 0; p < width; p++)
     {

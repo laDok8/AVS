@@ -17,7 +17,9 @@ public:
     int * calculateMandelbrot();
 
 private:
-    // @TODO add all internal parameters
+    int *data;
+    float *realBlock, *imagBlock, *realBlockStart;
+    const int BLOCK = 256;
 };
 
 #endif
