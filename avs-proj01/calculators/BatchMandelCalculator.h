@@ -19,7 +19,7 @@ public:
 private:
     int *data;
     float *realBlock, *imagBlock, *realBlockStart;
-    const int BLOCK = 256;
+    int b = 2048;
 };
 
 #endif

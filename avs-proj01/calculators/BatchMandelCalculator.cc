@@ -18,10 +18,12 @@
 BatchMandelCalculator::BatchMandelCalculator (unsigned matrixBaseSize, unsigned limit) :
 	BaseMandelCalculator(matrixBaseSize, limit, "BatchMandelCalculator")
 {
+    while(width % b || height % b) b /= 2;
+
     data = (int *)(malloc(height * width * sizeof(int)));
-    realBlock = (float *)(malloc(BLOCK * sizeof(float)));
-    imagBlock = (float *)(malloc(BLOCK * sizeof(float)));
-    realBlockStart = (float *)(malloc(BLOCK * sizeof(float)));
+    realBlock = (float *)(malloc(b * sizeof(float)));
+    imagBlock = (float *)(malloc(b * sizeof(float)));
+    realBlockStart = (float *)(malloc(b * sizeof(float)));
 }
 
 BatchMandelCalculator::~BatchMandelCalculator() {
@@ -38,12 +40,17 @@ BatchMandelCalculator::~BatchMandelCalculator() {
 
 int * BatchMandelCalculator::calculateMandelbrot () {
     int *pdata = data;
+    const int BLOCK = b;
+
 
     //TODO: staci height/2
+    static int yBlocks = height / BLOCK;
+    static int xBlocks = width / BLOCK;
+
     //y block
-    for (int ty = 0; ty < height / BLOCK; ty++) {
-        //y block
-        for (int tx = 0; tx < width / BLOCK; tx++) {
+    for (int ty = 0; ty < yBlocks; ty++) {
+        //x block
+        for (int tx = 0; tx < xBlocks; tx++) {
 
             for (int y = 0; y < BLOCK; y++) {
                 const int effectiveY = ty * BLOCK + y;
@@ -52,22 +59,20 @@ int * BatchMandelCalculator::calculateMandelbrot () {
                 }
 
                 //init values
-                const float startY = y_start + effectiveY * dy; // current imaginary value
+                float startY = y_start + effectiveY * dy; // current imaginary value
                 for (int x = 0; x < BLOCK; x++) {
                     imagBlock[x] = startY;
                     const int effectiveX = tx * BLOCK + x;
-                    const float startX = x_start + effectiveX * dx; // current real value
+                    float startX = x_start + effectiveX * dx; // current real value
                     realBlock[x] = realBlockStart[x] = startX;
                }
 
                 //limit loop
                 for (int lo = 0; lo < limit; lo++) {
 
+                    #pragma omp simd reduction(+:pdata[:BLOCK])
                     for (int x = 0; x < BLOCK; x++) {
                         const int effectiveX = tx * BLOCK + x;
-                        if(effectiveX > width) {
-                            break;
-                        }
 
                         float r2 = realBlock[x] * realBlock[x];
                         float i2 = imagBlock[x] * imagBlock[x];
