@@ -64,7 +64,9 @@ static inline void mandelbrotLine(int width, int *pdata, T *realLine, T *imagLin
 
 int * LineMandelCalculator::calculateMandelbrot () {
     int *pdata = data;
-    for (int i = 0; i < height; i++)
+
+    static int halfHeight = height / 2;
+    for (int i = 0; i < halfHeight; i++)
     {
         float y = y_start + i * dy; // current imaginary value
 
@@ -82,5 +84,16 @@ int * LineMandelCalculator::calculateMandelbrot () {
         }
         pdata+=width;
     }
+
+    //data is symmetric
+    static int mWidth = width;
+    for (int i = 0; i < halfHeight; i++)
+    {
+        for(int j = 0; j < mWidth; j++)
+        {
+            data[(height -i - 1) * width + j] = data[i*width + j];
+        }
+    }
+
     return data;
 }

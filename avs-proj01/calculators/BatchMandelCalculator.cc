@@ -18,7 +18,7 @@
 BatchMandelCalculator::BatchMandelCalculator (unsigned matrixBaseSize, unsigned limit) :
 	BaseMandelCalculator(matrixBaseSize, limit, "BatchMandelCalculator")
 {
-    while(width % b || height % b) b /= 2;
+    while(matrixBaseSize % b) b /= 2;
 
     data = (int *)(malloc(height * width * sizeof(int)));
     realBlock = (float *)(malloc(b * sizeof(float)));
@@ -43,9 +43,10 @@ int * BatchMandelCalculator::calculateMandelbrot () {
     const int BLOCK = b;
 
 
-    //TODO: staci height/2
-    static int yBlocks = height / BLOCK;
-    static int xBlocks = width / BLOCK;
+    static int halfHeight = height / 2;
+    static int mWidth = width;
+    static int yBlocks = halfHeight / BLOCK;
+    static int xBlocks = mWidth / BLOCK;
 
     //y block
     for (int ty = 0; ty < yBlocks; ty++) {
@@ -54,7 +55,7 @@ int * BatchMandelCalculator::calculateMandelbrot () {
 
             for (int y = 0; y < BLOCK; y++) {
                 const int effectiveY = ty * BLOCK + y;
-                if(effectiveY > height) {
+                if(effectiveY > halfHeight) {
                     break;
                 }
 
@@ -90,5 +91,15 @@ int * BatchMandelCalculator::calculateMandelbrot () {
             }
         }
     }
+
+    //data is symmetric
+    for (int i = 0; i < halfHeight; i++)
+    {
+        for(int j = 0; j < mWidth; j++)
+        {
+            data[(height -i - 1) * width + j] = data[i*width + j];
+        }
+    }
+
     return data;
 }
