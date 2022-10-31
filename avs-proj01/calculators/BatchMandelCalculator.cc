@@ -1,29 +1,22 @@
 /**
  * @file BatchMandelCalculator.cc
- * @author FULL NAME <xlogin00@stud.fit.vutbr.cz>
+ * @author LADISLAV DOKOUPIL <xdokou14@stud.fit.vutbr.cz>
  * @brief Implementation of Mandelbrot calculator that uses SIMD paralelization over small batches
- * @date DATE
+ * @date 1.11.2022
  */
 
-#include <iostream>
-#include <string>
-#include <vector>
 #include <algorithm>
-
 #include <stdlib.h>
-#include <stdexcept>
 
 #include "BatchMandelCalculator.h"
 
 BatchMandelCalculator::BatchMandelCalculator (unsigned matrixBaseSize, unsigned limit) :
 	BaseMandelCalculator(matrixBaseSize, limit, "BatchMandelCalculator")
 {
-    while(matrixBaseSize % b) b /= 2;
-
     data = (int *)(malloc(height * width * sizeof(int)));
-    realBlock = (float *)(malloc(b * sizeof(float)));
-    imagBlock = (float *)(malloc(b * sizeof(float)));
-    realBlockStart = (float *)(malloc(b * sizeof(float)));
+    realBlock = (float *)(malloc(batch_size * sizeof(float)));
+    imagBlock = (float *)(malloc(batch_size * sizeof(float)));
+    realBlockStart = (float *)(malloc(batch_size * sizeof(float)));
 }
 
 BatchMandelCalculator::~BatchMandelCalculator() {
@@ -40,7 +33,7 @@ BatchMandelCalculator::~BatchMandelCalculator() {
 
 int * BatchMandelCalculator::calculateMandelbrot () {
     int *pdata = data;
-    const int BLOCK = b;
+    const int BLOCK = batch_size;
 
 
     static int halfHeight = height / 2;
