@@ -6,68 +6,52 @@
  */
 
 #include <algorithm>
-#include <stdlib.h>
-
+#include <immintrin.h>
 
 #include "LineMandelCalculator.h"
 
+template<class T>
+T* allocateMemory(size_t size)
+{
+    return ((T *) _mm_malloc(size * sizeof(T), 64));
+}
+
+template<class T>
+void freeMemory(T* array)
+{
+    _mm_free(array);
+    array = NULL;
+}
 
 LineMandelCalculator::LineMandelCalculator (unsigned matrixBaseSize, unsigned limit) :
 	BaseMandelCalculator(matrixBaseSize, limit, "LineMandelCalculator")
 {
-    data = (int *)(malloc(height * width * sizeof(int)));
-    realLine = (float *)(malloc(width * sizeof(float)));
-    imagLine = (float *)(malloc(width * sizeof(float)));
-    realLineStart = (float *)(malloc(width * sizeof(float)));
-
-    for (int j = 0; j < width; j++) {
-        float x = x_start + j * dx; // current real value
-        realLineStart[j] = x;
-    }
-
+    data = allocateMemory<int>( height * width * sizeof(int));
+    realLine = allocateMemory<float>(width * sizeof(float));
+    imagLine = allocateMemory<float>(width * sizeof(float));
+    realLineStart = allocateMemory<float>(width * sizeof(float));
 }
 
 LineMandelCalculator::~LineMandelCalculator() {
-    free(data);
-    data = NULL;
-    free(realLine);
-    realLine = NULL;
-    free(imagLine);
-    imagLine = NULL;
-    free(realLineStart);
-    realLineStart = NULL;
-}
-
-template <typename T>
-static inline void mandelbrotLine(int width, int *pdata, T *realLine, T *imagLine, T *realLineStart, T imagLineStart)
-{
-    for (int p= 0; p < width; p++)
-    {
-        T r2 = realLine[p] * realLine[p];
-        T i2 = imagLine[p] * imagLine[p];
-
-        if (r2 + i2 > 4.0f) {
-            continue;
-        }
-
-        imagLine[p] = 2.0f * realLine[p] * imagLine[p] + imagLineStart;
-        realLine[p] = r2 - i2 + realLineStart[p];
-        pdata[p]++;
+    freeMemory(data);
+    freeMemory(realLine);
+    freeMemory(imagLine);
+    freeMemory(realLineStart);
     }
-
-}
-
-
 
 int * LineMandelCalculator::calculateMandelbrot () {
     int *pdata = data;
+    float *prealLine = realLine;
+    float *pimagLine = imagLine;
+    float *prealLineStart = realLineStart;
 
-    static int halfHeight = height / 2;
+    int halfHeight = height / 2;
     for (int i = 0; i < halfHeight; i++)
     {
         float y = y_start + i * dy; // current imaginary value
 
         //init assign
+        #pragma omp simd aligned(prealLine,pimagLine,prealLineStart)
         for (int j = 0; j < width; j++)
         {
             imagLine[j] = y;
@@ -75,18 +59,36 @@ int * LineMandelCalculator::calculateMandelbrot () {
             realLine[j] = realLineStart[j] = x;
         }
 
-        for (int i = 0; i < limit; ++i)
+        for (int li = 0; li < limit; ++li)
         {
-            mandelbrotLine(width,pdata,realLine,imagLine,realLineStart,y);
+            //line
+            int doneCount = 0;
+            #pragma omp simd aligned(pdata,prealLine,pimagLine,prealLineStart) reduction(+:pdata[:width]) reduction(+:doneCount)
+            for (int p= 0; p < width; p++)
+            {
+                float r2 = prealLine[p] * prealLine[p];
+                float i2 = pimagLine[p] * pimagLine[p];
+
+                if (r2 + i2 > 4.0f) {
+                    doneCount++;
+                    continue;
+                }
+
+
+                pimagLine[p] = 2.0f * prealLine[p] * pimagLine[p] + y;
+                prealLine[p] = r2 - i2 + prealLineStart[p];
+                pdata[p]++;
+            }
+            if(doneCount == width)
+                break;
         }
         pdata+=width;
     }
 
     //data is symmetric
-    static int mWidth = width;
     for (int i = 0; i < halfHeight; i++)
     {
-        for(int j = 0; j < mWidth; j++)
+        for(int j = 0; j < width; j++)
         {
             data[(height -i - 1) * width + j] = data[i*width + j];
         }

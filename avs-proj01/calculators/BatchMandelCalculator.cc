@@ -7,39 +7,50 @@
 
 #include <algorithm>
 #include <stdlib.h>
+#include <immintrin.h>
 
 #include "BatchMandelCalculator.h"
+
+template<class T>
+T* allocateMemory(size_t size)
+{
+    return ((T *) _mm_malloc(size * sizeof(T), 64));
+}
+
+template<class T>
+void freeMemory(T* array)
+{
+    _mm_free(array);
+    array = NULL;
+}
 
 BatchMandelCalculator::BatchMandelCalculator (unsigned matrixBaseSize, unsigned limit) :
 	BaseMandelCalculator(matrixBaseSize, limit, "BatchMandelCalculator")
 {
-    data = (int *)(malloc(height * width * sizeof(int)));
-    realBlock = (float *)(malloc(batch_size * sizeof(float)));
-    imagBlock = (float *)(malloc(batch_size * sizeof(float)));
-    realBlockStart = (float *)(malloc(batch_size * sizeof(float)));
+    data = allocateMemory<int>( height * width * sizeof(int));
+    realBlock = allocateMemory<float>(batch_size * sizeof(float));
+    imagBlock = allocateMemory<float>(batch_size * sizeof(float));
+    realBlockStart = allocateMemory<float>(batch_size * sizeof(float));
 }
 
 BatchMandelCalculator::~BatchMandelCalculator() {
-    free(data);
-    data = NULL;
-    free(realBlock);
-    realBlock = NULL;
-    free(imagBlock);
-    imagBlock = NULL;
-    free(realBlockStart);
-    realBlockStart = NULL;
+    freeMemory(data);
+    freeMemory(realBlock);
+    freeMemory(imagBlock);
+    freeMemory(realBlockStart);
 }
 
 
 int * BatchMandelCalculator::calculateMandelbrot () {
     int *pdata = data;
+    float *prealBlock = realBlock;
+    float *pimagBlock = imagBlock;
+    float *prealBlockStart = realBlockStart;
+
     const int BLOCK = batch_size;
-
-
-    static int halfHeight = height / 2;
-    static int mWidth = width;
-    static int yBlocks = halfHeight / BLOCK;
-    static int xBlocks = mWidth / BLOCK;
+    const int halfHeight = height / 2;
+    const int yBlocks = halfHeight / BLOCK;
+    const int xBlocks = width / BLOCK;
 
     //y block
     for (int ty = 0; ty < yBlocks; ty++) {
@@ -47,39 +58,42 @@ int * BatchMandelCalculator::calculateMandelbrot () {
         for (int tx = 0; tx < xBlocks; tx++) {
 
             for (int y = 0; y < BLOCK; y++) {
-                const int effectiveY = ty * BLOCK + y;
-                if(effectiveY > halfHeight) {
-                    break;
-                }
+                int effectiveY = ty * BLOCK + y;
+                int dataBase = effectiveY * width;
+                int *ppdata = pdata + dataBase + tx * BLOCK;
 
                 //init values
                 float startY = y_start + effectiveY * dy; // current imaginary value
+                #pragma omp simd aligned(prealBlock,pimagBlock,prealBlockStart)
                 for (int x = 0; x < BLOCK; x++) {
-                    imagBlock[x] = startY;
-                    const int effectiveX = tx * BLOCK + x;
+                    pimagBlock[x] = startY;
+                    int effectiveX = tx * BLOCK + x;
                     float startX = x_start + effectiveX * dx; // current real value
-                    realBlock[x] = realBlockStart[x] = startX;
+                    prealBlock[x] = prealBlockStart[x] = startX;
                }
 
                 //limit loop
                 for (int lo = 0; lo < limit; lo++) {
 
-                    #pragma omp simd reduction(+:pdata[:BLOCK])
+                    int doneCount=0;
+                    #pragma omp simd reduction(+:pdata[:BLOCK]) aligned(ppdata,prealBlock,pimagBlock,prealBlockStart) reduction(+:doneCount)
                     for (int x = 0; x < BLOCK; x++) {
-                        const int effectiveX = tx * BLOCK + x;
-
-                        float r2 = realBlock[x] * realBlock[x];
-                        float i2 = imagBlock[x] * imagBlock[x];
+                        float r2 = prealBlock[x] * prealBlock[x];
+                        float i2 = pimagBlock[x] * pimagBlock[x];
 
                         if (r2 + i2 > 4.0f) {
+                            doneCount++;
                             continue;
                         }
 
-                        imagBlock[x] = 2.0f * realBlock[x] * imagBlock[x] + startY;
-                        realBlock[x] = r2 - i2 + realBlockStart[x];
-                        pdata[effectiveY * width + effectiveX]++;
+                        pimagBlock[x] = 2.0f * prealBlock[x] * pimagBlock[x] + startY;
+                        prealBlock[x] = r2 - i2 + prealBlockStart[x];
+                        //new effective X via pointer arithmetics
+                        ppdata[x]++;
 
                     }
+                    if(doneCount==BLOCK)
+                        break;
                 }
             }
         }
@@ -88,7 +102,7 @@ int * BatchMandelCalculator::calculateMandelbrot () {
     //data is symmetric
     for (int i = 0; i < halfHeight; i++)
     {
-        for(int j = 0; j < mWidth; j++)
+        for(int j = 0; j < width; j++)
         {
             data[(height -i - 1) * width + j] = data[i*width + j];
         }
