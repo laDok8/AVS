@@ -2,7 +2,7 @@
  * @file LineMandelCalculator.cc
  * @author LADISLAV DOKOUPIL <xdokou14@stud.fit.vutbr.cz>
  * @brief Implementation of Mandelbrot calculator that uses SIMD paralelization over lines
- * @date 1.11.2022
+ * @date 6.11.2022
  */
 
 #include <algorithm>
@@ -10,12 +10,12 @@
 
 #include "LineMandelCalculator.h"
 
+// malloc templates taken from school lab exercise
 template<class T>
 T* allocateMemory(size_t size)
 {
     return ((T *) _mm_malloc(size * sizeof(T), 64));
 }
-
 template<class T>
 void freeMemory(T* array)
 {
@@ -63,7 +63,7 @@ int * LineMandelCalculator::calculateMandelbrot () {
         {
             //line
             int doneCount = 0;
-            #pragma omp simd aligned(pdata,prealLine,pimagLine,prealLineStart) reduction(+:pdata[:width]) reduction(+:doneCount)
+            #pragma omp simd aligned(pdata,prealLine,pimagLine,prealLineStart) reduction(+:doneCount)
             for (int p= 0; p < width; p++)
             {
                 float r2 = prealLine[p] * prealLine[p];

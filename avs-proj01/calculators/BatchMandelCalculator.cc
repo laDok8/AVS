@@ -2,7 +2,7 @@
  * @file BatchMandelCalculator.cc
  * @author LADISLAV DOKOUPIL <xdokou14@stud.fit.vutbr.cz>
  * @brief Implementation of Mandelbrot calculator that uses SIMD paralelization over small batches
- * @date 1.11.2022
+ * @date 6.11.2022
  */
 
 #include <algorithm>
@@ -11,12 +11,12 @@
 
 #include "BatchMandelCalculator.h"
 
+// malloc templates taken from school lab exercise
 template<class T>
 T* allocateMemory(size_t size)
 {
     return ((T *) _mm_malloc(size * sizeof(T), 64));
 }
-
 template<class T>
 void freeMemory(T* array)
 {
@@ -76,7 +76,7 @@ int * BatchMandelCalculator::calculateMandelbrot () {
                 for (int lo = 0; lo < limit; lo++) {
 
                     int doneCount=0;
-                    #pragma omp simd reduction(+:pdata[:BLOCK]) aligned(ppdata,prealBlock,pimagBlock,prealBlockStart) reduction(+:doneCount)
+                    #pragma omp simd aligned(ppdata,prealBlock,pimagBlock,prealBlockStart) reduction(+:doneCount)
                     for (int x = 0; x < BLOCK; x++) {
                         float r2 = prealBlock[x] * prealBlock[x];
                         float i2 = pimagBlock[x] * pimagBlock[x];

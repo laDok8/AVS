@@ -2,24 +2,33 @@
 
 1. Proč je nutné určovat, zda má výpočet pokračovat?
 ==============================================================================
+Zbytečně bychom pokračovali v iteracích nad daty, které již
+překročily threshold. Tudíž nemá cenu je počítat (do *data se již nic neukládá)
 
 
 2. Byla "Line" vektorizace efektivní? Proč?
 ==============================================================================
+ne, Line má nefektivní přístup cache vzhledem k její asociativtě -> dochází k jejímu častému vybíjeni (miss)
 
 
 3. Jaká byla dosažena výkonnost v Intel Advisoru pro jednotlivé implementace 
 (v GFLOPS)?
 ==============================================================================
+(data vzata z hlavní/nejvnitřnější smyčky)
+Ref:    2.3  GFLOPS
+Line:   18.9 GFLOPS
+Batch:  28.9 GFLOPS
 
 
 4. Jaká část kódu byla vektorizována v "Line" implementaci? Vyčteme tuto 
 informaci i u batch kalkulátoru?
 ==============================================================================
+Vektorizovaná je nejvnitřnější smyčka, která se vztahuje k jednomu řádku/částí řádku matice jak u Line tak u Batch.
 
 
 5. Co vyčteme z Roofline modelu pro obě vektorizované implementace?
 ==============================================================================
-
+This loop is mostly memory bound but may also be compute bound - pro obě implementace
+line & batch: vzhledem k OP/byte se pohybujeme mezi L2 a L3 cache ( 15.3 L3 a 177.5 L2)
 
 
