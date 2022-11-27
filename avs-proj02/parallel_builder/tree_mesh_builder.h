@@ -24,8 +24,8 @@ protected:
     void emitTriangle(const Triangle_t &triangle);
     const Triangle_t *getTrianglesArray() const { return mTriangles.data(); }
 
-    unsigned marchSegment(const Vec3_t<float> &cubeOffset,const unsigned int  cubeLen, const ParametricScalarField &field);
-    unsigned marchSmallCube(const Vec3_t<float> &pos, const unsigned int cubeLen, const ParametricScalarField &field);
+    unsigned marchSegment(const Vec3_t<float> &cubeOffset,const unsigned cubeLen, const ParametricScalarField &field);
+    unsigned marchSmallCube(const Vec3_t<float> &pos, const unsigned cubeLen, const ParametricScalarField &field);
     std::vector<Triangle_t> mTriangles;
 };
 
