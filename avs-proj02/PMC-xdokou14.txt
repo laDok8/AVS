@@ -7,35 +7,55 @@ Login: xdokou14
 
 1) Kterou ze smyček (viz zadání) je vhodnější paralelizovat a co způsobuje 
    neefektivitu paralelizaci té druhé?
+   marchCubes smyčka je efektivnější.
+   Paralelizace smyčky pro výpočet vzdálenosti bodů představuje menší kus práce.
+   Většína kódu by tedy stále bežela na jednom procesoru a pro paralelizovanou smyčku
+   by navíc hrála větší roli režie
 
 2) Jaké plánování (rozdělení práce mezi vlákna) jste zvolili a proč? 
    Jaký vliv má velikost "chunk" při dynamickém plánování (8, 16, 32, 64)?
+   Dynamické plánováni se jevilo jako vhodnější vzhledem k nestejné velikosti (času vykonání) podúloh.
+   volba chunk_size měla zanedbatelný vliv na výsledný čas.
 
 3) Jakým způsobem zajišťujete ukládání trojúhelníků z několika vláken současně?
+    kritickou sekcí při přístupu k vektoru výstupních trojúhelníků
 
 
 Úloha 2: Paralelní průchod stromem
 ===============================================================================
 
 1) Stručně popište použití OpenMP tasků ve vašem řešení.
+    Pro každou podkrychly je ve smyčce vytvořena OpenMP úloha.
+    Aktualizace počtu trojúhelníků (+=) je atomická operace.
+    Před opuštěním funkce je navíc třeba počkat na dokončení všech podúloh pomoci taskwait.
 
 2) Jaký vliv má na vaše řešení tzv. "cut-off"? Je vhodné vytvářet nový 
    task pro každou krychli na nejnižší úrovni?
+   mirné zrychlení, pro menší krychle způsobuje paralelizace zbytečnou režii
+   a je rychlejší ji seriově zpracovat
 
 3) Jakým způsobem zajišťujete ukládání trojúhelníků z několika vláken současně?
+    kritickou sekcí při přístupu k vektoru výstupních trojúhelníků
 
 Úloha 3: Grafy škálování všech řešení
 ===============================================================================
 
 1) Stručně zhodnoťte efektivitu vytvořených řešení (na základě grafů škálování).
+    V případě malých úloh je efektivnější smyčkové řešení, jelikož OpenMp tasky způsobují zbytečnou režii.
+    Sitauce se obrací okolo 2^15 elementů, kdy je Octree varianta vhodnější.
 
 2) V jakém případě (v závislosti na počtu bodů ve vstupním souboru a velikosti 
    mřížky) bude vaše řešení 1. úlohy neefektivní? (pokud takový případ existuje)
+   TODO:
 
 3) Je (nebo není) stromový algoritmus efektivnější z pohledu slabého škálování 
    vzhledem ke vstupu?
+    loop algoritmus je z pohledu slabého škálovaní lepší,
+    jelikož s dvojnásobným počtem vláken se zvýší výkon více než dvojnásobně (mimo size/thread=100.
 
 4) Jaký je rozdíle mezi silným a slabým škálováním?
+    silné škálování zachovává konstantní práci a sleduje její zrychlení s počtem vláken.
+    slabé škálování zvyšuje práci s počtem vláken (pro teoretické zahcovaní konstatního času) a sleduje škálovaní.
 
 Úloha 4: Analýza využití jader pomocí VTune
 ================================================================================
@@ -43,15 +63,17 @@ Login: xdokou14
 1) Jaké bylo průměrné využití jader pro všechny tři implementace s omezením na 
    18 vláken? Na kolik procent byly využity?
    
-   ref:
-   loop:
-   tree:
+   ref: 2.8%
+   loop: 47.9%
+   tree: 45.3%
 
 2) Jaké bylo průměrné využití jader pro všechny tři implementace s využitím 
    všech jader? Na kolik procent se podařilo využít obě CPU?
    
-   ref:
-   loop:
-   tree:
+   ref: 2.8%
+   loop: 88.5%
+   tree: 67.2%
 
 3) Jaké jsou závěry z těchto měření?
+    ačkoliv tree algoritmus je rychlejší, loop se z hlediska škálovaní/využití jader jeví jako lepší.
+    Oba algoritmy jsou však řádově lepší než referenční řešení.
