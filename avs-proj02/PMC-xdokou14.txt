@@ -7,53 +7,64 @@ Login: xdokou14
 
 1) Kterou ze smyček (viz zadání) je vhodnější paralelizovat a co způsobuje 
    neefektivitu paralelizaci té druhé?
-   marchCubes smyčka je efektivnější.
-   Paralelizace smyčky pro výpočet vzdálenosti bodů představuje menší kus práce.
-   Většína kódu by tedy stále bežela na jednom procesoru a pro paralelizovanou smyčku
-   by navíc hrála větší roli režie
+
+   Paralelizace smyčky pro výpočet vzdálenosti bodů je méně efektivní,
+   představuje totiž menší kus práce (více režie) navíc se sdílenou proměnou (nutný atomicky update/kritická sekce).
 
 2) Jaké plánování (rozdělení práce mezi vlákna) jste zvolili a proč? 
    Jaký vliv má velikost "chunk" při dynamickém plánování (8, 16, 32, 64)?
+
    Dynamické plánováni se jevilo jako vhodnější vzhledem k nestejné velikosti (času vykonání) podúloh.
-   volba chunk_size měla zanedbatelný vliv na výsledný čas.
+   Volba chunk_size měla zanedbatelný vliv na výsledný čas, zvolil jsem 32.
 
 3) Jakým způsobem zajišťujete ukládání trojúhelníků z několika vláken současně?
-    kritickou sekcí při přístupu k vektoru výstupních trojúhelníků
 
+    Kritickou sekcí pomocí OpenMP pragmatu.
 
 Úloha 2: Paralelní průchod stromem
 ===============================================================================
 
 1) Stručně popište použití OpenMP tasků ve vašem řešení.
-    Pro každou podkrychly je ve smyčce vytvořena OpenMP úloha.
+
+    Pro každou podkrychly je ve smyčce vytvořena OpenMP úloha, kterou lze vykonat paralelně.
     Aktualizace počtu trojúhelníků (+=) je atomická operace.
     Před opuštěním funkce je navíc třeba počkat na dokončení všech podúloh pomoci taskwait.
 
 2) Jaký vliv má na vaše řešení tzv. "cut-off"? Je vhodné vytvářet nový 
    task pro každou krychli na nejnižší úrovni?
-   mirné zrychlení, pro menší krychle způsobuje paralelizace zbytečnou režii
-   a je rychlejší ji seriově zpracovat
+
+   Cut-off přínáší mírné zrychlení, pro menší krychle způsobuje paralelizace zbytečnou režii
+   a je rychlejší je seriově zpracovat.
 
 3) Jakým způsobem zajišťujete ukládání trojúhelníků z několika vláken současně?
-    kritickou sekcí při přístupu k vektoru výstupních trojúhelníků
+
+    Kritickou sekcí pomocí OpenMP pragmatu
 
 Úloha 3: Grafy škálování všech řešení
 ===============================================================================
 
 1) Stručně zhodnoťte efektivitu vytvořených řešení (na základě grafů škálování).
+
     V případě malých úloh je efektivnější smyčkové řešení, jelikož OpenMp tasky způsobují zbytečnou režii.
-    Sitauce se obrací okolo 2^15 elementů, kdy je Octree varianta vhodnější.
+    Situace se obrací okolo 2^15 elementů, kdy je Octree varianta vhodnější.
+    Z grafu silného škálování vidíme, že je octree vždy rychlejší,
+    avšak při přechodu z 2^4 -> 2^5 vláken se obě řešení zpomalila.
+    Z grafu slabého škálování vidíme, že stromové řešení dobře škáluje až při více úlohách na vlákno,
+    zatímco loop lépe škáluje pro menší řešení (i když je pomalejší).
+
 
 2) V jakém případě (v závislosti na počtu bodů ve vstupním souboru a velikosti 
    mřížky) bude vaše řešení 1. úlohy neefektivní? (pokud takový případ existuje)
-   TODO:
+
+   Rešení je nefektivní pro malé úlohy a hodně vláken.
 
 3) Je (nebo není) stromový algoritmus efektivnější z pohledu slabého škálování 
    vzhledem ke vstupu?
-    loop algoritmus je z pohledu slabého škálovaní lepší,
-    jelikož s dvojnásobným počtem vláken se zvýší výkon více než dvojnásobně (mimo size/thread=100.
 
-4) Jaký je rozdíle mezi silným a slabým škálováním?
+   není efektivnější, pro malé vstupy špatně škáluje.
+
+4) Jaký je rozdíl mezi silným a slabým škálováním?
+
     silné škálování zachovává konstantní práci a sleduje její zrychlení s počtem vláken.
     slabé škálování zvyšuje práci s počtem vláken (pro teoretické zahcovaní konstatního času) a sleduje škálovaní.
 
@@ -75,5 +86,6 @@ Login: xdokou14
    tree: 67.2%
 
 3) Jaké jsou závěry z těchto měření?
+
     ačkoliv tree algoritmus je rychlejší, loop se z hlediska škálovaní/využití jader jeví jako lepší.
     Oba algoritmy jsou však řádově lepší než referenční řešení.
